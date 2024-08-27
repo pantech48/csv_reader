@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 app = FastAPI()
 
+
 class ProductOut(BaseModel):
     product_name: str
     photo_url: str
@@ -18,17 +19,24 @@ class ProductOut(BaseModel):
     class Config:
         orm_mode = True
 
+
 @app.get("/products/{producer}", response_model=List[ProductOut])
 def get_products_by_producer(
-    producer: str,
-    skip: int = Query(0, ge=0),
-    limit: int = Query(10, ge=1, le=100)
+    producer: str, skip: int = Query(0, ge=0), limit: int = Query(10, ge=1, le=100)
 ):
     session = Session(bind=engine)
     try:
-        products = session.query(Product).filter(Product.producer == producer).offset(skip).limit(limit).all()
+        products = (
+            session.query(Product)
+            .filter(Product.producer == producer)
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
         if not products:
-            raise HTTPException(status_code=404, detail="No products found for this producer")
+            raise HTTPException(
+                status_code=404, detail="No products found for this producer"
+            )
         return products
     finally:
         session.close()

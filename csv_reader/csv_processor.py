@@ -8,19 +8,23 @@ from .models import Base, Product
 import gdown
 import re
 
-engine = create_engine('sqlite:///products.db')
+engine = create_engine("sqlite:///products.db")
 Base.metadata.create_all(engine)
 Session = sessionmaker(bind=engine)
 
-GOOGLE_DRIVE_URL = "https://drive.google.com/file/d/1X9ze_7q1oVjDia4trRnd9ZZkq5P2ymhY/view"
+GOOGLE_DRIVE_URL = (
+    "https://drive.google.com/file/d/1X9ze_7q1oVjDia4trRnd9ZZkq5P2ymhY/view"
+)
 CSV_FILE_PATH = "catalog.csv"
+
 
 def extract_file_id(url: str) -> str:
     """Extract the file ID from a Google Drive URL."""
-    match = re.search(r'/file/d/([a-zA-Z0-9_-]+)', url)
+    match = re.search(r"/file/d/([a-zA-Z0-9_-]+)", url)
     if match:
         return match.group(1)
     raise ValueError("Unable to extract file ID from URL")
+
 
 def download_csv():
     try:
@@ -33,10 +37,11 @@ def download_csv():
         logger.exception(f"Error downloading CSV file: {e}")
         raise
 
+
 def read_csv(file_path: str) -> List[Dict[str, str]]:
     try:
         logger.info(f"Reading CSV file: {file_path}")
-        with open(file_path, 'r', newline='') as csvfile:
+        with open(file_path, "r", newline="") as csvfile:
             reader = csv.DictReader(csvfile)
             data = list(reader)
         logger.info(f"Successfully read {len(data)} rows from {file_path}")
@@ -44,6 +49,7 @@ def read_csv(file_path: str) -> List[Dict[str, str]]:
     except Exception as e:
         logger.exception(f"Error reading CSV file {file_path}: {e}")
         return []
+
 
 def update_database(data: List[Dict[str, str]]):
     session = Session()
@@ -68,7 +74,7 @@ def update_database(data: List[Dict[str, str]]):
                     sku=row['sku (unique id)'],
                     producer=row['producer']
                 )
-                session.add(product)
+                session.add(product)  # Add this line to add new products
         session.commit()
         logger.info(f"Successfully updated database with {len(data)} products")
     except Exception as e:
@@ -76,6 +82,7 @@ def update_database(data: List[Dict[str, str]]):
         session.rollback()
     finally:
         session.close()
+
 
 def process_csv():
     try:
