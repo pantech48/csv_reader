@@ -1,5 +1,5 @@
 from apscheduler.schedulers.background import BackgroundScheduler
-from .csv_processor import process_csv
+from app.csv_processor import process_csv
 
 
 def start_scheduler():

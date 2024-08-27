@@ -29,4 +29,4 @@ def setup_logger(name, log_file, level=logging.INFO):
 
 
 # Create a default logger
-logger = setup_logger("csv_reader", "csv_reader.log")
+logger = setup_logger("app", "app.log")

@@ -1,7 +1,7 @@
 import uvicorn
-from csv_reader.api import app
-from csv_reader.scheduler import start_scheduler
-from csv_reader.csv_processor import process_csv
+from app.api import app
+from app.scheduler import start_scheduler
+from app.csv_processor import process_csv
 
 
 def main():

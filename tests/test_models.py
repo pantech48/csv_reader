@@ -1,5 +1,5 @@
 import unittest
-from csv_reader.models import Product
+from app.models import Product
 
 
 class TestModels(unittest.TestCase):

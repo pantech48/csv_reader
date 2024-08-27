@@ -1,12 +1,15 @@
 import csv
 import os
+import re
 from typing import List, Dict
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from utils.logger import logger
-from .models import Base, Product
 import gdown
-import re
+
+from utils.logger import logger
+from app.models import Base, Product
+from app.database import SessionLocal
 
 engine = create_engine("sqlite:///products.db")
 Base.metadata.create_all(engine)
@@ -51,38 +54,37 @@ def read_csv(file_path: str) -> List[Dict[str, str]]:
         return []
 
 
-def update_database(data: List[Dict[str, str]]):
-    session = Session()
+def update_database(data: List[Dict[str, str]], db: Session = None):
+    if db is None:
+        db = SessionLocal()
     try:
         for row in data:
-            product = session.query(Product).filter_by(sku=row['sku (unique id)']).first()
+            product = db.query(Product).filter_by(sku=row['sku (unique id)']).first()
             if product:
                 # Update existing product
-                product.product_name = row['product_name']
-                product.photo_url = row['photo_url']
-                product.barcode = row['barcode']
-                product.price_cents = int(row['price_cents'])
-                product.sku = row['sku (unique id)']
-                product.producer = row['producer']
+                for key, value in row.items():
+                    if key == 'sku (unique id)':
+                        setattr(product, 'sku', value)
+                    elif key == 'producer':
+                        setattr(product, 'producer', value if value else '')
+                    else:
+                        setattr(product, key.replace(' ', '_'), value)
             else:
                 # Create new product
-                product = Product(
-                    product_name=row['product_name'],
-                    photo_url=row['photo_url'],
-                    barcode=row['barcode'],
-                    price_cents=int(row['price_cents']),
-                    sku=row['sku (unique id)'],
-                    producer=row['producer']
-                )
-                session.add(product)  # Add this line to add new products
-        session.commit()
+                product_data = {key.replace(' ', '_'): value for key, value in row.items() if key != 'sku (unique id)'}
+                product_data['sku'] = row['sku (unique id)']
+                product_data['producer'] = row.get('producer', '')  # Set empty string if producer is missing
+                product = Product(**product_data)
+                db.add(product)
+        db.commit()
         logger.info(f"Successfully updated database with {len(data)} products")
     except Exception as e:
         logger.exception(f"Error updating database: {e}")
-        session.rollback()
+        db.rollback()
+        raise
     finally:
-        session.close()
-
+        if db != SessionLocal():
+            db.close()
 
 def process_csv():
     try:
