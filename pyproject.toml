@@ -12,13 +12,17 @@ fastapi = "^0.112.2"
 uvicorn = "^0.30.6"
 sqlalchemy = "^2.0.32"
 pandas = "^2.2.2"
+apscheduler = "^3.10.4"
+gdown = "^4.7.1"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.8.0"
 flake8 = "^7.1.1"
+uvicorn = "^0.30.6"
 
 [tool.poetry.scripts]
 lint = "scripts.lint:main"
+format = "scripts.black_format:main"
 
 [build-system]
 requires = ["poetry-core"]
