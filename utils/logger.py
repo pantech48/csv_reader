@@ -3,7 +3,7 @@ from logging.handlers import RotatingFileHandler
 import os
 
 
-def setup_logger(name, log_file, level=logging.INFO):
+def setup_logger(name, log_file, level=logging.INFO) -> logging.Logger:
     """Function to setup as many loggers as you want"""
 
     # Create logs directory if it doesn't exist

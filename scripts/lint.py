@@ -2,7 +2,8 @@ import subprocess
 import sys
 
 
-def main():
+def main() -> None:
+    """Run Flake8 linter on the project files."""
     try:
         subprocess.run(["flake8", "."], check=True)
     except subprocess.CalledProcessError as e:

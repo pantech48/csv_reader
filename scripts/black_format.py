@@ -2,7 +2,8 @@ import subprocess
 import sys
 
 
-def main():
+def main() -> None:
+    """Run Black formatter on the project files."""
     print("Running Black formatter...")
     try:
         # Run Black in check mode first

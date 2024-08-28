@@ -1,3 +1,7 @@
+"""
+This module contains functions to process CSV files, including downloading,
+reading, and updating the database with the CSV data.
+"""
 from fastapi import FastAPI, Query, HTTPException, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
@@ -23,17 +27,18 @@ class ProductOut(BaseModel):
 
 @app.get("/products/", response_model=List[ProductOut])
 def get_products(
-        producer: Optional[str] = None,
-        skip: int = Query(0, ge=0),
-        limit: int = Query(10, ge=1, le=100),
-        db: Session = Depends(get_db)
+    producer: Optional[str] = None,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1, le=100),
+    db: Session = Depends(get_db),
 ):
+    """Get a list of products based on the producer."""
     query = db.query(Product)
 
     if producer is not None:
-        query = query.filter(or_(Product.producer == producer, Product.producer == ''))
+        query = query.filter(or_(Product.producer == producer, Product.producer == ""))
     else:
-        query = query.filter(Product.producer == '')
+        query = query.filter(Product.producer == "")
 
     products = query.offset(skip).limit(limit).all()
 
