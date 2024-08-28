@@ -2,10 +2,11 @@
 This module contains functions to process CSV files, including downloading,
 reading, and updating the database with the CSV data.
 """
+
 import csv
 import os
 import re
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -14,15 +15,12 @@ import gdown
 from utils.logger import logger
 from app.models import Base, Product
 from app.database import SessionLocal
+from config import GOOGLE_DRIVE_URL, CSV_FILE_PATH, DATABASE_URL
 
-engine = create_engine("sqlite:///products.db")
+
+engine = create_engine(DATABASE_URL)
 Base.metadata.create_all(engine)
 Session = sessionmaker(bind=engine)
-
-GOOGLE_DRIVE_URL = (
-    "https://drive.google.com/file/d/1X9ze_7q1oVjDia4trRnd9ZZkq5P2ymhY/view"
-)
-CSV_FILE_PATH = "catalog.csv"
 
 
 def extract_file_id(url: str) -> str:
@@ -84,7 +82,66 @@ def read_csv(file_path: str) -> List[Dict[str, str]]:
         return []
 
 
-def update_database(data: List[Dict[str, str]], db: Session = None):
+def update_existing_product(product: Product, row: Dict[str, str]) -> None:
+    """
+    Update an existing product with new data.
+
+    Args:
+        product (Product): The existing product to update.
+        row (Dict[str, str]): A dictionary containing the new product data.
+
+    Returns:
+        None
+    """
+    for key, value in row.items():
+        if key == "sku (unique id)":
+            setattr(product, "sku", value)
+        elif key == "producer":
+            setattr(product, "producer", value if value else "")
+        else:
+            setattr(product, key.replace(" ", "_"), value)
+
+
+def create_new_product(row: Dict[str, str]) -> Product:
+    """
+    Create a new product from row data.
+
+    Args:
+        row (Dict[str, str]): A dictionary containing the product data.
+
+    Returns:
+        Product: A new Product instance.
+    """
+    product_data = {
+        key.replace(" ", "_"): value
+        for key, value in row.items()
+        if key != "sku (unique id)"
+    }
+    product_data["sku"] = row["sku (unique id)"]
+    product_data["producer"] = row.get("producer", "")
+    return Product(**product_data)
+
+
+def process_row(db: Session, row: Dict[str, str]) -> None:
+    """
+    Process a single row of data.
+
+    Args:
+        db (Session): The database session.
+        row (Dict[str, str]): A dictionary containing the product data.
+
+    Returns:
+        None
+    """
+    product = db.query(Product).filter_by(sku=row["sku (unique id)"]).first()
+    if product:
+        update_existing_product(product, row)
+    else:
+        new_product = create_new_product(row)
+        db.add(new_product)
+
+
+def update_database(data: List[Dict[str, str]], db: Session = None) -> None:
     """
     Update the database with the provided data.
 
@@ -92,36 +149,21 @@ def update_database(data: List[Dict[str, str]], db: Session = None):
         data (List[Dict[str, str]]): A list of dictionaries representing the data to be updated.
         db (Session, optional): The database session. Defaults to None.
 
+    Returns:
+        None
+
     Raises:
         Exception: If there is an error during the database update process.
     """
     if db is None:
         db = SessionLocal()
+        should_close_db = True
+    else:
+        should_close_db = False
+
     try:
         for row in data:
-            product = db.query(Product).filter_by(sku=row["sku (unique id)"]).first()
-            if product:
-                # Update existing product
-                for key, value in row.items():
-                    if key == "sku (unique id)":
-                        setattr(product, "sku", value)
-                    elif key == "producer":
-                        setattr(product, "producer", value if value else "")
-                    else:
-                        setattr(product, key.replace(" ", "_"), value)
-            else:
-                # Create new product
-                product_data = {
-                    key.replace(" ", "_"): value
-                    for key, value in row.items()
-                    if key != "sku (unique id)"
-                }
-                product_data["sku"] = row["sku (unique id)"]
-                product_data["producer"] = row.get(
-                    "producer", ""
-                )  # Set empty string if producer is missing
-                product = Product(**product_data)
-                db.add(product)
+            process_row(db, row)
         db.commit()
         logger.info(f"Successfully updated database with {len(data)} products")
     except Exception as e:
@@ -129,17 +171,17 @@ def update_database(data: List[Dict[str, str]], db: Session = None):
         db.rollback()
         raise
     finally:
-        if db != SessionLocal():
+        if should_close_db:
             db.close()
 
 
 def process_csv() -> None:
     """
-     Process the CSV file by downloading it, reading its contents, and updating the database.
+    Process the CSV file by downloading it, reading its contents, and updating the database.
 
-     Raises:
-         Exception: If there is an error during the CSV processing.
-     """
+    Raises:
+        Exception: If there is an error during the CSV processing.
+    """
     try:
         download_csv()
         data = read_csv(CSV_FILE_PATH)
@@ -154,5 +196,3 @@ def process_csv() -> None:
         if os.path.exists(CSV_FILE_PATH):
             os.remove(CSV_FILE_PATH)
             logger.info(f"Removed temporary CSV file: {CSV_FILE_PATH}")
-
-

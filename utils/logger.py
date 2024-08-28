@@ -2,6 +2,8 @@ import logging
 from logging.handlers import RotatingFileHandler
 import os
 
+import config
+
 
 def setup_logger(name, log_file, level=logging.INFO) -> logging.Logger:
     """Function to setup as many loggers as you want"""
@@ -13,7 +15,11 @@ def setup_logger(name, log_file, level=logging.INFO) -> logging.Logger:
 
     formatter = logging.Formatter("%(asctime)s %(levelname)s: %(message)s")
 
-    handler = RotatingFileHandler(log_file_path, maxBytes=2000000, backupCount=5)
+    handler = RotatingFileHandler(
+        log_file_path,
+        maxBytes=config.LOG_FILE_MAX_BYTES,
+        backupCount=config.LOG_FILE_BACKUP_COUNT,
+    )
     handler.setFormatter(formatter)
 
     logger = logging.getLogger(name)
@@ -29,4 +35,4 @@ def setup_logger(name, log_file, level=logging.INFO) -> logging.Logger:
 
 
 # Create a default logger
-logger = setup_logger("app", "app.log")
+logger = setup_logger("app", config.LOG_FILE_NAME)

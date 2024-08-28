@@ -1,6 +1,7 @@
 """
 This module defines the database models using SQLAlchemy.
 """
+
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 
